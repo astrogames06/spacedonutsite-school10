@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Space Doughnuts</title>
+
+<!-- Google Font -->
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto:wght@300;400&display=swap" rel="stylesheet">
+
+<!-- Import Map for Three.js -->
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.152.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.152.0/examples/jsm/"
+  }
+}
+</script>
+
+<style>
+* { margin:0; padding:0; box-sizing:border-box; font-family: 'Roboto', sans-serif; }
+
+body {
+  background: radial-gradient(circle at top, #0a0f2c, #000);
+  color:white;
+  overflow-x:hidden;
+  scroll-behavior:smooth;
+}
+
+/* Smooth cursor glow */
+.cursor {
+  position: fixed;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(0,255,255,0.5);
+  pointer-events:none;
+  transform: translate(-50%,-50%);
+  filter: blur(10px);
+  z-index:999;
+}
+
+/* STARFIELD */
+.stars {
+  position:fixed;
+  width:100%;
+  height:100%;
+  z-index:-2;
+}
+.stars::after {
+  content:"";
+  position:absolute;
+  width:2px;
+  height:2px;
+  background:white;
+  box-shadow:
+    100px 200px white, 300px 400px white, 500px 100px white,
+    800px 300px white, 1200px 600px white, 1500px 200px white;
+  animation:twinkle 4s infinite alternate;
+}
+@keyframes twinkle { from{opacity:0.2;} to{opacity:1;} }
+
+/* WELCOME SCREEN */
+#welcome {
+  position:fixed;
+  width:100%;
+  height:100%;
+  background:black;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-family: 'Orbitron', sans-serif;
+  font-size:2.2rem;
+  z-index:1000;
+  animation:warp 2s forwards;
+}
+@keyframes warp {
+  0% {opacity:1;}
+  80% {opacity:1;}
+  100% {opacity:0; visibility:hidden;}
+}
+
+/* HEADER */
+header {
+  text-align:center;
+  padding:120px 20px 80px 20px;
+}
+header h1 {
+  font-family: 'Orbitron', sans-serif;
+  font-size:3rem;
+  background:linear-gradient(90deg,#00eaff,#ff00ff);
+  -webkit-background-clip:text;
+  color:transparent;
+}
+header p {
+  font-size:1.2rem;
+  opacity:0.8;
+  margin-top:10px;
+}
+
+/* SECTIONS */
+section {
+  padding:80px 20px;
+  max-width:1000px;
+  margin:auto;
+  position:relative;
+}
+
+/* ABOUT SECTION */
+.about-card {
+  display:flex;
+  flex-wrap:wrap;
+  background: rgba(255,255,255,0.05);
+  border-radius: 25px;
+  padding:40px;
+  gap:40px;
+  backdrop-filter:blur(15px);
+  box-shadow:0 0 25px rgba(0,255,255,0.2);
+  transition: 0.3s;
+}
+.about-card:hover {
+  transform: scale(1.02);
+  box-shadow:0 0 35px #00eaff;
+}
+.about-text {
+  flex:1 1 350px;
+  font-size:1.1rem;
+  line-height:1.6;
+}
+.about-image {
+  flex:1 1 350px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  position:relative;
+  height:400px;
+  border-radius:20px;
+  overflow:hidden;
+}
+
+/* 3D canvas */
+#doughnut3d {
+  width:100%;
+  height:100%;
+}
+
+/* CARD STYLING */
+.card {
+  background:rgba(255,255,255,0.05);
+  border-radius:20px;
+  padding:25px;
+  margin:20px 0;
+  backdrop-filter:blur(12px);
+  transition:0.3s;
+}
+.card:hover {
+  transform:translateY(-5px) scale(1.02);
+  box-shadow:0 0 25px cyan;
+}
+
+/* MENU GRID */
+.menu {
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(250px,1fr));
+  gap:25px;
+}
+.menu img {
+  width:100%;
+  border-radius:15px;
+  margin-top:10px;
+  transition:0.5s;
+}
+.menu img:hover {
+  transform:rotateY(20deg) rotateX(10deg) scale(1.1);
+}
+
+/* BUTTONS */
+button {
+  padding:12px 24px;
+  border:none;
+  border-radius:25px;
+  cursor:pointer;
+  font-family: 'Orbitron', sans-serif;
+  background:linear-gradient(90deg,#00eaff,#ff00ff);
+  color:white;
+  margin:5px;
+  transition:0.3s;
+}
+button:hover {
+  transform:scale(1.05);
+}
+
+/* FLOATING DOUGHNUTS */
+.donut {
+  position:fixed;
+  width:60px;
+  opacity:0.2;
+  animation:float 12s linear infinite;
+}
+@keyframes float {
+  from {transform:translateY(100vh) rotate(0deg);}
+  to {transform:translateY(-10vh) rotate(360deg);}
+}
+
+/* FOOTER */
+footer {
+  text-align:center;
+  padding:50px;
+  opacity:0.6;
+}
+
+/* SMALL SCREENS */
+@media(max-width:768px){
+  .about-card {flex-direction:column;}
+  header h1 {font-size:2.5rem;}
+  header p {font-size:1rem;}
+}
+</style>
+</head>
+
+<body>
+
+<div id="welcome">Entering Warp Speed...</div>
+<div class="stars"></div>
+<div class="cursor" id="cursor"></div>
+
+<!-- FLOATING IMAGES -->
+<img src="titan-toffee.png" class="donut" style="left:10%; animation-duration:12s;">
+<img src="solar-flare.png" class="donut" style="left:40%; animation-duration:9s;">
+<img src="venusian-volcano.png" class="donut" style="left:70%; animation-duration:14s;">
+
+<header>
+  <h1>Space Doughnuts</h1>
+  <p>The most delicious shop in the Universe</p>
+</header>
+
+<section>
+  <h2>About</h2>
+  <div class="about-card">
+    <div class="about-text">
+      <p>Our spaceship landed in Icing Sugar Valley, and we knew instantly this was home. A glowing cosmic shop, staffed by friendly tentacled beings, serving travellers across the galaxy at light speed.</p>
+      <p>Located at a major artery of the Saccharine Galactic Cluster, Space Doughnuts is both popular and convenient. Pre-order through the Exoplanet Eats app to collect your doughnut delivery without dropping out of warp drive!</p>
+    </div>
+    <div class="about-image">
+      <canvas id="doughnut3d"></canvas>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>Dine In</h2>
+  <div class="card">
+    <p>Relax in our interstellar lounge and watch supernovas while enjoying extraterrestrial espresso and unforgettable doughnuts.</p>
+  </div>
+</section>
+
+<section>
+  <h2>Menu</h2>
+  <button onclick="filterMenu('all')">All</button>
+  <button onclick="filterMenu('cheap')">Cheap</button>
+  <button onclick="filterMenu('premium')">Premium</button>
+
+  <div class="menu" id="menu">
+    <div class="card item cheap">
+      <h3>Alien Invasion</h3>
+      <p>§8</p>
+      <img src="alien-donut-eater.png">
+    </div>
+    <div class="card item premium">
+      <h3>Quantum Foam Freche</h3>
+      <p>§15</p>
+    </div>
+    <div class="card item cheap">
+      <h3>Asteroid Crumbcake</h3>
+      <p>§10</p>
+    </div>
+    <div class="card item cheap">
+      <h3>Solar Flare</h3>
+      <p>§10</p>
+      <img src="solar-flare.png">
+    </div>
+    <div class="card item premium">
+      <h3>Titan Toffee</h3>
+      <p>§12</p>
+      <img src="titan-toffee.png">
+    </div>
+    <div class="card item cheap">
+      <h3>Venusian Volcano</h3>
+      <p>§10</p>
+      <img src="venusian-volcano.png">
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>A Beacon in Space</h2>
+  <div class="card">
+    <p>Space Doughnuts shines bright — a beacon of warmth across the universe.</p>
+  </div>
+</section>
+
+<footer>
+  <p>2024 Space Doughnuts — All rights reserved across the galaxy</p>
+</footer>
+
+<script>
+/* CURSOR */
+const cursor = document.getElementById("cursor");
+document.addEventListener("mousemove", e => {
+  cursor.style.left = e.clientX + "px";
+  cursor.style.top = e.clientY + "px";
+});
+
+/* FILTER MENU */
+function filterMenu(type) {
+  const items = document.querySelectorAll('.item');
+  items.forEach(item => {
+    item.style.display = (type==='all' || item.classList.contains(type)) ? 'block':'none';
+  });
+}
+
+/* STARFIELD PARALLAX */
+window.addEventListener("scroll", () => {
+  document.querySelector(".stars").style.transform = "translateY(" + window.scrollY*0.3 + "px)";
+});
+</script>
+
+<!-- 3D Doughnut -->
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+const canvas = document.getElementById("doughnut3d");
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(45, canvas.clientWidth/canvas.clientHeight, 0.1, 1000);
+camera.position.z = 3;
+
+const renderer = new THREE.WebGLRenderer({canvas:canvas, alpha:true});
+renderer.setSize(canvas.clientWidth, canvas.clientHeight);
+renderer.setPixelRatio(window.devicePixelRatio);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping=true;
+controls.enableZoom=false;
+
+const geometry = new THREE.TorusGeometry(0.8,0.3,16,100);
+const material = new THREE.MeshStandardMaterial({color:0xff00ff, metalness:0.8, roughness:0.2});
+const torus = new THREE.Mesh(geometry, material);
+scene.add(torus);
+
+const light1 = new THREE.PointLight(0x00eaff,1);
+light1.position.set(5,5,5);
+scene.add(light1);
+
+const light2 = new THREE.PointLight(0xff00ff,1);
+light2.position.set(-5,-5,5);
+scene.add(light2);
+
+function animate(){
+  requestAnimationFrame(animate);
+  torus.rotation.x+=0.01;
+  torus.rotation.y+=0.01;
+  controls.update();
+  renderer.render(scene,camera);
+}
+animate();
+
+window.addEventListener("resize",()=>{
+  renderer.setSize(canvas.clientWidth, canvas.clientHeight);
+  camera.aspect = canvas.clientWidth/canvas.clientHeight;
+  camera.updateProjectionMatrix();
+});
+</script>
+
+</body>
+</html>
